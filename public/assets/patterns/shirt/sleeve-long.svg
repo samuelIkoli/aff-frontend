@@ -1,0 +1,19 @@
+<!-- /public/assets/patterns/shirt/sleeve-long.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600">
+  <!-- LEFT long sleeve -->
+  <path
+    d="M140 120
+       L95 145
+       L95 360
+       L135 350
+       Z"
+    fill="#e5e5e5" stroke="#333" stroke-width="1.5"/>
+  <!-- RIGHT long sleeve -->
+  <path
+    d="M260 120
+       L305 145
+       L305 360
+       L265 350
+       Z"
+    fill="#e5e5e5" stroke="#333" stroke-width="1.5"/>
+</svg>

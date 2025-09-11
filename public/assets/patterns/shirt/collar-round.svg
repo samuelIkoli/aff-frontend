@@ -1,0 +1,10 @@
+<!-- /public/assets/patterns/shirt/collar-round.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600">
+  <!-- Round neckline "cutout" effect: fill with white so base shows -->
+  <path
+    d="M170 120
+       A30 30 0 0 0 230 120
+       A30 30 0 0 0 170 120
+       Z"
+    fill="#ffffff" stroke="#333" stroke-width="1.5"/>
+</svg>
