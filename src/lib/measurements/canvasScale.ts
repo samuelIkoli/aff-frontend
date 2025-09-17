@@ -1,0 +1,2 @@
+export const CANVAS_HEIGHT_SCALE = 1.1; // let the canvas height be a little more than the human/avatars height
+export const CANVAS_WIDTH_SCALE = 3; // let the canvas width be decently wider that the human/avatars width

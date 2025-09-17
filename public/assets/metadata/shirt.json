@@ -1,0 +1,26 @@
+{
+    "sleeve-short.svg": {
+        "anchor": {
+            "x": 20,
+            "y": 40
+        }
+    },
+    "sleeve-long.svg": {
+        "anchor": {
+            "x": 20,
+            "y": 60
+        }
+    },
+    "collar-round.svg": {
+        "anchor": {
+            "x": 100,
+            "y": 0
+        }
+    },
+    "collar-vneck.svg": {
+        "anchor": {
+            "x": 100,
+            "y": 5
+        }
+    }
+}
