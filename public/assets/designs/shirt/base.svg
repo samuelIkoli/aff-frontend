@@ -1,0 +1,12 @@
+<!-- /public/assets/patterns/shirt/base.svg -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600">
+  <!-- light torso fill so sleeves/collars sit on top -->
+  <path
+    d="M140 120
+       C140 100, 260 100, 260 120  /* shoulder curve */
+       L260 360                   /* right side */
+       C260 430, 245 500, 200 500 /* right hem curve to center */
+       C155 500, 140 430, 140 360 /* left hem curve */
+       Z"
+    fill="#e5e5e5" stroke="#333" stroke-width="1.5"/>
+</svg>

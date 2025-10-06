@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import * as fabric from "fabric";
-import { loadSVGAsGroup } from "@/lib/fabricLoader";
+// import { loadSVGAsGroup } from "@/lib/fabricLoader";
 import { alignByAnchor } from "@/lib/canvasUtils";
 import {
     PX_PER_CM,
@@ -37,58 +37,58 @@ function placeGroup(group: fabric.Group, left: number, top: number) {
     group.setCoords();
 }
 
-async function renderSelection(canvas: fabric.Canvas, selection: Selection) {
-    canvas.clear();
+// async function renderSelection(canvas: fabric.Canvas, selection: Selection) {
+//     canvas.clear();
 
-    const {
-        garment,
-        sleeve,
-        collar,
-        fitWidth = 320, // default fit width
-        left = 140,
-        top = 60,
-    } = selection;
+//     const {
+//         garment,
+//         sleeve,
+//         collar,
+//         fitWidth = 320, // default fit width
+//         left = 140,
+//         top = 60,
+//     } = selection;
 
-    // 1) Load metadata for this garment
-    const metadata: Record<string, { anchor: { x: number; y: number } }> =
-        await fetch(`/assets/metadata/${garment}.json`).then((res) => res.json());
+//     // 1) Load metadata for this garment
+//     const metadata: Record<string, { anchor: { x: number; y: number } }> =
+//         await fetch(`/assets/metadata/${garment}.json`).then((res) => res.json());
 
-    // 2) Base
-    const base = await loadSVGAsGroup(`/assets/patterns/${garment}/base.svg`);
-    base.set({ originX: "left", originY: "top", selectable: false });
-    scaleGroupToWidth(base, fitWidth);
-    placeGroup(base, left, top);
-    canvas.add(base);
+//     // 2) Base
+//     const base = await loadSVGAsGroup(`/assets/patterns/${garment}/base.svg`);
+//     base.set({ originX: "left", originY: "top", selectable: false });
+//     scaleGroupToWidth(base, fitWidth);
+//     placeGroup(base, left, top);
+//     canvas.add(base);
 
-    // 3) Sleeve (optional, aligned by anchor)
-    if (sleeve) {
-        const sleeveGroup = await loadSVGAsGroup(`/assets/patterns/${garment}/${sleeve}`);
-        sleeveGroup.set({ originX: "left", originY: "top", selectable: false });
+//     // 3) Sleeve (optional, aligned by anchor)
+//     if (sleeve) {
+//         const sleeveGroup = await loadSVGAsGroup(`/assets/patterns/${garment}/${sleeve}`);
+//         sleeveGroup.set({ originX: "left", originY: "top", selectable: false });
 
-        if (metadata[sleeve]) {
-            alignByAnchor(sleeveGroup, base, metadata[sleeve]);
-            // apply same scaling as base
-            sleeveGroup.scale(base.scaleX ?? 1);
-        }
+//         if (metadata[sleeve]) {
+//             alignByAnchor(sleeveGroup, base, metadata[sleeve]);
+//             // apply same scaling as base
+//             sleeveGroup.scale(base.scaleX ?? 1);
+//         }
 
-        canvas.add(sleeveGroup);
-    }
+//         canvas.add(sleeveGroup);
+//     }
 
-    // 4) Collar (optional, aligned by anchor)
-    if (collar) {
-        const collarGroup = await loadSVGAsGroup(`/assets/patterns/${garment}/${collar}`);
-        collarGroup.set({ originX: "left", originY: "top", selectable: false });
+//     // 4) Collar (optional, aligned by anchor)
+//     if (collar) {
+//         const collarGroup = await loadSVGAsGroup(`/assets/patterns/${garment}/${collar}`);
+//         collarGroup.set({ originX: "left", originY: "top", selectable: false });
 
-        if (metadata[collar]) {
-            alignByAnchor(collarGroup, base, metadata[collar]);
-            collarGroup.scale(base.scaleX ?? 1);
-        }
+//         if (metadata[collar]) {
+//             alignByAnchor(collarGroup, base, metadata[collar]);
+//             collarGroup.scale(base.scaleX ?? 1);
+//         }
 
-        canvas.add(collarGroup);
-    }
+//         canvas.add(collarGroup);
+//     }
 
-    canvas.renderAll();
-}
+//     canvas.renderAll();
+// }
 
 export default function CanvasDesigner({ selection }: { selection: Selection }) {
     const canvasElRef = useRef<HTMLCanvasElement | null>(null);
@@ -140,12 +140,31 @@ export default function CanvasDesigner({ selection }: { selection: Selection }) 
                 tooltip.set({ text: `${x}, ${y}`, left: x + 10, top: y + 10 });
             }
 
+            // Horizontal line
+            const hLine = new fabric.Line([0, canvas.height / 2, canvas.width, canvas.height / 2], {
+                stroke: "#dadada",
+                selectable: false,
+                evented: false,
+            });
+
+            // Vertical line
+            const vLine = new fabric.Line([canvas.width / 2, 0, canvas.width / 2, canvas.height], {
+                stroke: "#dadada",
+                selectable: false,
+                evented: false,
+            });
+
+            canvas.add(hLine);
+            canvas.add(vLine);
+            canvas.sendObjectBackwards(hLine);
+            canvas.sendObjectBackwards(vLine);
+
             canvas.renderAll();
         });
 
 
         (async () => {
-            await renderSelection(canvas, selection);
+            // await renderSelection(canvas, selection);
         })();
 
         return () => {
@@ -159,12 +178,12 @@ export default function CanvasDesigner({ selection }: { selection: Selection }) 
         (async () => {
             const canvas = fabricCanvasRef.current;
             if (!canvas) return;
-            await renderSelection(canvas, selection);
+            // await renderSelection(canvas, selection);
         })();
     }, [selection]);
 
     return (
-        <div className="w-full flex justify-center">
+        <div className="w-full flex justify-center border-2 border-gray-400 rounded-md">
             <canvas ref={canvasElRef} />
         </div>
     );

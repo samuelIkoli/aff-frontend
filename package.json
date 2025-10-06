@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@shadcn/ui": "^0.0.4",
+    "clsx": "^2.1.1",
     "fabric": "^6.7.1",
     "framer-motion": "^12.23.12",
     "konva": "^10.0.2",
