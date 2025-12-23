@@ -1,0 +1,10 @@
+{
+  "type": "collar",
+  "anchors": {
+    "attach": { "x": 40, "y": 40 }
+  },
+  "baseline": {
+    "width_cm": 32,
+    "height_cm": 18
+  }
+}

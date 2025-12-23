@@ -1,0 +1,10 @@
+{
+  "type": "sleeve",
+  "anchors": {
+    "attach_left": { "x": 40, "y": 0 }
+  },
+  "baseline": {
+    "width_cm": 50,
+    "height_cm": 80
+  }
+}

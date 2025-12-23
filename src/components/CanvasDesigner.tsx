@@ -1,189 +1,133 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import * as fabric from "fabric";
-// import { loadSVGAsGroup } from "@/lib/fabricLoader";
-import { alignByAnchor } from "@/lib/canvasUtils";
-import {
-    PX_PER_CM,
-    HUMAN_HEIGHT_CM, HUMAN_WIDTH_CM
-} from "@/lib/measurements/xxl";
+import { PX_PER_CM, HUMAN_HEIGHT_CM, HUMAN_WIDTH_CM } from "@/lib/measurements/xxl";
 import { CANVAS_HEIGHT_SCALE, CANVAS_WIDTH_SCALE } from "@/lib/measurements/canvasScale";
+import { createCanvas, addMidlines } from "@/design/canvas/canvasManager";
+import { loadBlock } from "@/design/canvas/objectLoader";
+import { attachBlock } from "@/design/canvas/anchorEngine";
+import { scaleBlock, type MeasurementInput } from "@/design/canvas/measurementEngine";
+import { applyTexture } from "@/design/canvas/textureEngine";
 
 type Selection = {
-    garment: string; // e.g. "shirt"
-    sleeve?: string; // e.g. "sleeve-long.svg"
-    collar?: string; // e.g. "collar-vneck.svg"
-    fitWidth?: number; // optional: target width for scaling (px)
-    left?: number; // optional: x position
-    top?: number; // optional: y position
+    garment: string;
+    sleeve?: string;
+    collar?: string;
 };
 
-/**
- * Scale the base group to a target width
- */
-function scaleGroupToWidth(group: fabric.Group, targetWidth: number) {
-    const bounds = group.getBoundingRect();
-    const scale = targetWidth / bounds.width;
-    group.scale(scale);
-    group.setCoords();
+type CanvasDesignerProps = {
+    selection: Selection;
+    measurements: MeasurementInput;
+    textureUrl?: string;
+    onExport: {
+        setCanvas: (canvas: fabric.Canvas | null) => void;
+    };
+};
+
+async function loadImageElement(url: string) {
+    return new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = url;
+    });
 }
 
-/**
- * Place group at specific coordinates
- */
-function placeGroup(group: fabric.Group, left: number, top: number) {
-    group.set({ left, top });
-    group.setCoords();
-}
-
-// async function renderSelection(canvas: fabric.Canvas, selection: Selection) {
-//     canvas.clear();
-
-//     const {
-//         garment,
-//         sleeve,
-//         collar,
-//         fitWidth = 320, // default fit width
-//         left = 140,
-//         top = 60,
-//     } = selection;
-
-//     // 1) Load metadata for this garment
-//     const metadata: Record<string, { anchor: { x: number; y: number } }> =
-//         await fetch(`/assets/metadata/${garment}.json`).then((res) => res.json());
-
-//     // 2) Base
-//     const base = await loadSVGAsGroup(`/assets/patterns/${garment}/base.svg`);
-//     base.set({ originX: "left", originY: "top", selectable: false });
-//     scaleGroupToWidth(base, fitWidth);
-//     placeGroup(base, left, top);
-//     canvas.add(base);
-
-//     // 3) Sleeve (optional, aligned by anchor)
-//     if (sleeve) {
-//         const sleeveGroup = await loadSVGAsGroup(`/assets/patterns/${garment}/${sleeve}`);
-//         sleeveGroup.set({ originX: "left", originY: "top", selectable: false });
-
-//         if (metadata[sleeve]) {
-//             alignByAnchor(sleeveGroup, base, metadata[sleeve]);
-//             // apply same scaling as base
-//             sleeveGroup.scale(base.scaleX ?? 1);
-//         }
-
-//         canvas.add(sleeveGroup);
-//     }
-
-//     // 4) Collar (optional, aligned by anchor)
-//     if (collar) {
-//         const collarGroup = await loadSVGAsGroup(`/assets/patterns/${garment}/${collar}`);
-//         collarGroup.set({ originX: "left", originY: "top", selectable: false });
-
-//         if (metadata[collar]) {
-//             alignByAnchor(collarGroup, base, metadata[collar]);
-//             collarGroup.scale(base.scaleX ?? 1);
-//         }
-
-//         canvas.add(collarGroup);
-//     }
-
-//     canvas.renderAll();
-// }
-
-export default function CanvasDesigner({ selection }: { selection: Selection }) {
+export default function CanvasDesigner({ selection, measurements, textureUrl, onExport }: CanvasDesignerProps) {
     const canvasElRef = useRef<HTMLCanvasElement | null>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
 
-    const humanHeightCm = HUMAN_HEIGHT_CM
-    const humanWidthCm = HUMAN_WIDTH_CM
-    const humanHeightPx = humanHeightCm * PX_PER_CM;
-    const humanWidthPx = humanWidthCm * PX_PER_CM;
-
-    const canvasHeight = humanHeightPx * CANVAS_HEIGHT_SCALE;   // extra 20% space
+    const humanHeightPx = HUMAN_HEIGHT_CM * PX_PER_CM;
+    const humanWidthPx = HUMAN_WIDTH_CM * PX_PER_CM;
+    const canvasHeight = humanHeightPx * CANVAS_HEIGHT_SCALE;
     const canvasWidth = humanWidthPx * CANVAS_WIDTH_SCALE;
 
+    const renderSelection = useCallback(async () => {
+        const canvas = fabricCanvasRef.current;
+        if (!canvas) return;
+        canvas.clear();
+        addMidlines(canvas);
 
-    // init once
+        const base = await loadBlock({
+            patternPath: `/assets/patterns/${selection.garment}/base.svg`,
+            metadataPath: `/assets/metadata/${selection.garment}/base.json`,
+        });
+
+        scaleBlock(base.group, base.metadata, measurements);
+        // center base after scaling so the garment is balanced on the canvas
+        const baseWidth = base.group.getScaledWidth();
+        const baseHeight = base.group.getScaledHeight();
+        base.group.set({
+            left: (canvasWidth - baseWidth) / 2,
+            top: (canvasHeight - baseHeight) / 2 - 40,
+        });
+        base.group.setCoords();
+        if (textureUrl) {
+            const img = await loadImageElement(textureUrl);
+            applyTexture(base.group, img);
+        }
+        canvas.add(base.group);
+
+        if (selection.sleeve) {
+            const sleeve = await loadBlock({
+                patternPath: `/assets/patterns/${selection.garment}/${selection.sleeve}`,
+                metadataPath: `/assets/metadata/${selection.garment}/${selection.sleeve.replace(".svg", ".json")}`,
+            });
+            sleeve.group.scaleX = base.group.scaleX;
+            sleeve.group.scaleY = base.group.scaleY;
+            attachBlock(base, sleeve, canvas, { baseAnchor: "attach_left", childAnchor: "attach_left" });
+            canvas.add(sleeve.group);
+        }
+
+        if (selection.collar) {
+            const collar = await loadBlock({
+                patternPath: `/assets/patterns/${selection.garment}/${selection.collar}`,
+                metadataPath: `/assets/metadata/${selection.garment}/${selection.collar.replace(".svg", ".json")}`,
+            });
+            collar.group.scaleX = base.group.scaleX;
+            collar.group.scaleY = base.group.scaleY;
+            attachBlock(base, collar, canvas, { baseAnchor: "collar", childAnchor: "attach" });
+            // Treat collar as a cutout (negative space) by erasing with destination-out
+            collar.group.set({
+                globalCompositeOperation: "destination-out",
+                selectable: false,
+                evented: false,
+            });
+            canvas.add(collar.group);
+        }
+
+        canvas.renderAll();
+    }, [measurements, selection.collar, selection.garment, selection.sleeve, textureUrl]);
+
     useEffect(() => {
         if (!canvasElRef.current) return;
-
-        const canvas = new fabric.Canvas(canvasElRef.current, {
-            width: canvasWidth,
-            height: canvasHeight,
-            backgroundColor: "#fff",
-        });
-
-
+        const canvas = createCanvas(canvasElRef.current, canvasWidth, canvasHeight);
         fabricCanvasRef.current = canvas;
-        // Track tooltip object so we don't create duplicates
-        let tooltip: fabric.Text | null = null;
-
-        canvas.on("mouse:move", (opt) => {
-            const pointer = canvas.getPointer(opt.e);
-            const x = Math.round(pointer.x);
-            const y = Math.round(pointer.y);
-
-            // If tooltip doesn't exist, create it
-            if (!tooltip) {
-                tooltip = new fabric.Text(`${x}, ${y}`, {
-                    left: x + 10,
-                    top: y + 10,
-                    fontSize: 12,
-                    fill: "black",
-                    backgroundColor: "white",
-                    selectable: false,
-                    evented: false,
-                });
-                canvas.add(tooltip);
-            } else {
-                // Update existing tooltip
-                tooltip.set({ text: `${x}, ${y}`, left: x + 10, top: y + 10 });
-            }
-
-            // Horizontal line
-            const hLine = new fabric.Line([0, canvas.height / 2, canvas.width, canvas.height / 2], {
-                stroke: "#dadada",
-                selectable: false,
-                evented: false,
-            });
-
-            // Vertical line
-            const vLine = new fabric.Line([canvas.width / 2, 0, canvas.width / 2, canvas.height], {
-                stroke: "#dadada",
-                selectable: false,
-                evented: false,
-            });
-
-            canvas.add(hLine);
-            canvas.add(vLine);
-            canvas.sendObjectBackwards(hLine);
-            canvas.sendObjectBackwards(vLine);
-
-            canvas.renderAll();
-        });
-
+        onExport.setCanvas(canvas);
+        addMidlines(canvas);
 
         (async () => {
-            // await renderSelection(canvas, selection);
+            await renderSelection();
         })();
 
         return () => {
             canvas.dispose();
             fabricCanvasRef.current = null;
+            onExport.setCanvas(null);
         };
-    }, []);
+    }, [canvasHeight, canvasWidth, onExport, renderSelection]);
 
-    // re-render when selection changes
     useEffect(() => {
         (async () => {
-            const canvas = fabricCanvasRef.current;
-            if (!canvas) return;
-            // await renderSelection(canvas, selection);
+            if (!fabricCanvasRef.current) return;
+            await renderSelection();
         })();
-    }, [selection]);
+    }, [renderSelection, textureUrl]);
 
     return (
-        <div className="w-full flex justify-center border-2 border-gray-400 rounded-md">
+        <div className="w-full flex justify-center border border-white/10 rounded-2xl bg-white/5 p-3">
             <canvas ref={canvasElRef} />
         </div>
     );

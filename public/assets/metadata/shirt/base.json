@@ -1,0 +1,12 @@
+{
+  "type": "torso",
+  "anchors": {
+    "attach_left": { "x": 0, "y": 20 },
+    "attach_right": { "x": 120, "y": 20 },
+    "collar": { "x": 60, "y": 10 }
+  },
+  "baseline": {
+    "width_cm": 60,
+    "height_cm": 80
+  }
+}

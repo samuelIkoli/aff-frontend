@@ -1,163 +1,92 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import * as fabric from "fabric";
+import { useRef, useState } from "react";
+import type * as fabric from "fabric";
+import CanvasDesigner from "@/components/CanvasDesigner";
+import BlockSelector from "@/components/design/BlockSelector";
+import MeasurementControls from "@/components/design/MeasurementControls";
+import TexturePicker from "@/components/design/TexturePicker";
+import ExportPanel from "@/components/design/ExportPanel";
 
-export default function HomePage() {
+export default function DesignPage() {
+    const [selection, setSelection] = useState({
+        garment: "shirt",
+        sleeve: "sleeve-short.svg",
+        collar: "collar-round.svg",
+    });
+    const [measurements, setMeasurements] = useState({ width_cm: 60, height_cm: 80 });
+    const [texture, setTexture] = useState<string | undefined>();
     const canvasRef = useRef<fabric.Canvas | null>(null);
 
-
-
-    useEffect(() => {
-        const canvas = new fabric.Canvas("design-canvas", {
-            height: 500,
-            width: 400,
-            backgroundColor: "#f9f9f9",
-        });
+    const setCanvas = (canvas: fabric.Canvas | null) => {
         canvasRef.current = canvas;
-
-
-
-        // Base shirt body (rectangle placeholder)
-        const body = new fabric.Rect({
-            left: 120,
-            top: 100,
-            fill: "#e0dcdc",
-            width: 160,
-            height: 250,
-            selectable: false,
-        });
-        body.set({ id: "body" });
-        canvas.add(body);
-
-        // Default short sleeves (symmetrical)
-        addSleeves(canvas, "short");
-
-        // Default round neck
-        addNeck(canvas, "round");
-
-        return () => {
-            canvas.dispose();
-        };
-    }, []);
-
-    // Function to add sleeves
-    const addSleeves = (canvas: fabric.Canvas, type: "short" | "long") => {
-        const sleeveHeight = type === "short" ? 80 : 160;
-
-        // Left sleeve
-        const leftSleeve = new fabric.Rect({
-            left: 80,
-            top: 100,
-            fill: "#e0dcdc",
-            width: 40,
-            height: sleeveHeight,
-            selectable: false,
-        });
-        leftSleeve.set({ id: "leftSleeve" });
-
-        // Right sleeve
-        const rightSleeve = new fabric.Rect({
-            left: 280, // placed symmetrically to the right of body
-            top: 100,
-            fill: "#e0dcdc",
-            width: 40,
-            height: sleeveHeight,
-            selectable: false,
-        });
-        rightSleeve.set({ id: "rightSleeve" });
-
-        canvas.add(leftSleeve, rightSleeve);
     };
 
-    // Update sleeves
-    const updateSleeves = (type: "short" | "long") => {
+    const exportPNG = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-
-        // Remove old sleeves
-        canvas.getObjects().forEach(obj => {
-            if ((obj as any).id === "leftSleeve" || (obj as any).id === "rightSleeve") {
-                canvas.remove(obj);
-            }
-        });
-
-        // Add new sleeves
-        addSleeves(canvas, type);
-        canvas.renderAll();
+        const dataUrl = canvas.toDataURL({ format: "png" });
+        const link = document.createElement("a");
+        link.download = "aff-design.png";
+        link.href = dataUrl;
+        link.click();
     };
 
-    // Function to add necklines
-    const addNeck = (canvas: fabric.Canvas, type: "round" | "vneck") => {
-        let neck: fabric.Object;
-
-        if (type === "round") {
-            neck = new fabric.Circle({
-                left: 170,
-                top: 70,
-                radius: 30,
-                fill: "#f9f9f9",
-                selectable: false,
-            });
-        } else {
-            // Proper V-neck using path
-            neck = new fabric.Path("M 160 70 L 190 110 L 220 70 Z", {
-                fill: "#f9f9f9",
-                selectable: false,
-            });
-        }
-
-        neck.set({ id: "neck" });
-        canvas.add(neck);
-    };
-
-    // Update neckline
-    const updateNeck = (type: "round" | "vneck") => {
+    const exportSVG = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
+        const svg = canvas.toSVG();
+        const blob = new Blob([svg], { type: "image/svg+xml" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = "aff-design.svg";
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
 
-        // Remove old neck
-        const oldNeck = canvas.getObjects().find(obj => (obj as any).id === "neck");
-        if (oldNeck) canvas.remove(oldNeck);
-
-        // Add new
-        addNeck(canvas, type);
-        canvas.renderAll();
+    const exportJSON = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const json = canvas.toJSON(["metadata", "anchors"]);
+        const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.download = "aff-design.json";
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
-        <div className="flex flex-col items-center gap-4 p-6">
-            <h1 className="text-2xl font-bold">AFF Design Studio (MVP)</h1>
-            <canvas id="design-canvas" className="border rounded shadow" />
+        <div className="min-h-screen bg-gradient-to-b from-[#0f0a05] via-[#140f0b] to-[#0a0604] text-white">
+            <div className="max-w-6xl mx-auto px-6 py-10 space-y-6">
+                <div className="flex flex-col gap-3">
+                    <p className="text-sm text-amber-100/70 uppercase tracking-[0.16em]">AFF Design Studio</p>
+                    <h1 className="text-3xl font-semibold">Attach anchors, scale measurements, export patterns.</h1>
+                    <p className="text-amber-100/80 max-w-2xl">
+                        This MVP canvas snaps sleeves and collars to a shirt base using anchor metadata.
+                        Adjust measurements, apply textures, and export PNG/SVG/JSON with preserved anchors.
+                    </p>
+                </div>
 
-            <div className="flex gap-4 mt-4">
-                <button
-                    onClick={() => updateSleeves("short")}
-                    className="px-4 py-2 bg-[#c8a369] text-white rounded"
-                >
-                    Short Sleeve
-                </button>
-                <button
-                    onClick={() => updateSleeves("long")}
-                    className="px-4 py-2 bg-[#5c4033] text-white rounded"
-                >
-                    Long Sleeve
-                </button>
-            </div>
+                <div className="grid lg:grid-cols-[320px_1fr] gap-6 items-start">
+                    <div className="space-y-4">
+                        <BlockSelector value={selection} onChange={setSelection} />
+                        <MeasurementControls value={measurements} onChange={setMeasurements} />
+                        <TexturePicker onApply={setTexture} />
+                        <ExportPanel onExportPNG={exportPNG} onExportSVG={exportSVG} onExportJSON={exportJSON} />
+                    </div>
 
-            <div className="flex gap-4 mt-2">
-                <button
-                    onClick={() => updateNeck("round")}
-                    className="px-4 py-2 bg-[#fab75b] text-white rounded"
-                >
-                    Round Neck
-                </button>
-                <button
-                    onClick={() => updateNeck("vneck")}
-                    className="px-4 py-2 bg-[#5c4033] text-white rounded"
-                >
-                    V-Neck
-                </button>
+                    <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                        <CanvasDesigner
+                            selection={selection}
+                            measurements={measurements}
+                            textureUrl={texture}
+                            onExport={{ setCanvas }}
+                        />
+                    </div>
+                </div>
             </div>
         </div>
     );
